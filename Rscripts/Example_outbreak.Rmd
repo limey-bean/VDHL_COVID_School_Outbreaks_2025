@@ -1,1 +1,528 @@
+---
+title: "Phylepic and heatmap"
+author: "Emily Curd"
+date: "2025-08-01"
+output: html_document
+---
+
+# CoV.0682
+
+## 7 SNP
+
+# Load Libs
+
+```{r}
+
+library(tidyverse)
+library(dplyr)
+library(pheatmap)
+library(readr)
+library(rlang)
+library(heatmaply)
+library(ggtree)
+library(treeio)
+library(tidytree)
+library(ape)
+library(scico)
+library(ggplot2)
+library(phylepic)
+library(dendextend)
+
+library(dendsort)
+```
+
+# Load Data
+
+```{r}
+
+outbreakDot <- "CoV.0682"
+outpath="/polished_snp_heatmaps_and_phylepics/"
+
+dir.create(paste0(outpath,"/outbreak",outbreakDot,"/"), showWarnings = FALSE)  
+
+snpmat <-  read.delim("samples.aln.fasta.clipkit.snpdists.txt", row.names = "X")
+
+tree_labels <- read.csv("meta_data_0625.csv", header = TRUE)
+
+snpmatt <- as.data.frame(t(snpmat))
+
+snpmatt <- tibble::rownames_to_column(snpmatt, "seq.Name") 
+
+snp_meta <- left_join(snpmatt,tree_labels)
+
+
+```
+
+# Set colors for lineages
+
+```{r}
+lineage_col_pheat_cmy <- list(Lineage = c(
+   AY.44 = "#00ccb3",
+  AY.98.1 = "black",
+  AY.122 = "#6600ff",
+  AY.43 = "#0080cc",
+  AY.25 = "#d94d4d",
+  AY.25.1 = "#e68080",
+  AY.25.1.1 = "#f2b3b3",
+  AY.3 = "#33ff33",
+  AY.3.1 = "#73ff73",
+  AY.103 = "#d9f24d",
+  AY.4 = "#f280a6",
+  AY.19.1 = "#bff2bf",
+  AY.117 = "#cc0000",
+  AY.39 = "#80cc4d",
+  AY.39.1 = "#a6d980",
+  AY.100 = "#ff8000",
+  AY.113 = "#808000",
+  B.1.617.2 = "#004db3",
+  AY.2 = "#56B4E9",
+  AY.47 = "#d600ff",
+  BA.1 = "#40004d",
+  BA.1.15 = "#804d80",
+  BA.1.1 = "#998099",
+  BA.1.18 = "#ccb3cc",
+  B.1.1.7 = "#d9cc4d",
+  AY.5 = "grey10",
+  AY.99.2 = "grey80",
+  AY.20 = "grey70",
+  AY.107 = "grey50",
+  AY.75 = "grey40",
+  AY.35 = "grey30",
+  AY.14 = "grey20",
+  AY.119 = "grey90",
+  AY.119.2 = "grey95",
+  AY.105="grey95"
+))
+    
+```
+
+# format snp data
+
+```{r}
+snp_dist <- snp_meta %>% 
+  select(2:745,Unique_ID) %>% 
+  tibble::column_to_rownames( "Unique_ID") %>% 
+  select_if(colSums(.) != 0)
+
+snp_man_df <- as.data.frame(t(snp_dist))
+snp_man_df <- tibble::rownames_to_column(snp_man_df, "seq.Name") 
+
+snpMMmeta_merge <- left_join(snp_man_df,tree_labels)
+```
+
+# Make tree for outbreak
+
+```{r}
+
+tree <- read.iqtree(file="samples.aln.fasta.clipkit.contree")
+
+name<- "95plus_samples"
+
+x <- full_join(as_tibble(tree), tree_labels, by = c("label" = "seqName"))
+
+
+old.lab <- as.data.frame(tree@phylo$tip.label)
+
+new.lab <- left_join(as.data.frame(old.lab),tree_labels, by = c("tree@phylo$tip.label" = "seqName")) %>% select(Unique_ID)
+
+tree <- root(tree, outgroup = "NC_045512.2", edgelabel = TRUE)
+tree1 <- as.phylo(tree)
+
+tree1$tip.label <- new.lab$Unique_ID
+
+  tre2 <- ggtree(tree) %<+%  x  +  
+    geom_tippoint(aes(color = Lineage), na.rm = TRUE, size = 3)  + 
+    geom_tiplab(aes(label=Unique_ID, size = 2.5, offset = .000009)) + 
+    scale_color_manual(values = c(
+   AY.44 = "#00ccb3",
+  AY.98.1 = "black",
+  AY.122 = "#6600ff",
+  AY.43 = "#0080cc",
+  AY.25 = "#d94d4d",
+  AY.25.1 = "#e68080",
+  AY.25.1.1 = "#f2b3b3",
+  AY.3 = "#33ff33",
+  AY.3.1 = "#73ff73",
+  AY.103 = "#d9f24d",
+  AY.4 = "#f280a6",
+  AY.19.1 = "#bff2bf",
+  AY.117 = "#cc0000",
+  AY.39 = "#80cc4d",
+  AY.39.1 = "#a6d980",
+  AY.100 = "#ff8000",
+  AY.113 = "#808000",
+  B.1.617.2 = "#004db3",
+  AY.2 = "#56B4E9",
+  AY.47 = "#d600ff",
+  BA.1 = "#40004d",
+  BA.1.15 = "#804d80",
+  BA.1.1 = "#998099",
+  BA.1.18 = "#ccb3cc",
+  B.1.1.7 = "#d9cc4d",
+  AY.5 = "grey10",
+  AY.99.2 = "grey80",
+  AY.20 = "grey70",
+  AY.107 = "grey50",
+  AY.75 = "grey40",
+  AY.35 = "grey30",
+  AY.14 = "grey20",
+  AY.119 = "grey90",
+  AY.119.2 = "grey95",
+  AY.105="grey95"
+)) +
+    geom_nodelab(aes(lable=UFboot))
+
+    tre2
+    test <- tre2$data 
+    
+   test1 <- test %>% select(Cluster, Lineage, Unique_ID) %>% distinct()
+
+```
+
+# Make Phylepic
+
+```{r}
+
+
+outbreakDot <- "CoV.0682"
+  
+  col_list <- snpMMmeta_merge %>% 
+      filter(Outbreak_Name == as.name(outbreakDot)) %>%
+      filter(OB_CASE_DETERMINATION == "True Outbreak Case") %>% 
+      select(Unique_ID)
+  c <- col_list$Unique_ID
+  c <- as.character(c)
+
+  snp_outbreak0 <- snpMMmeta_merge %>% 
+      select(all_of(c)) %>%
+      mutate(across(everything(), as.numeric))
+  
+  all <- snpMMmeta_merge %>% 
+      select("Unique_ID","Outbreak_Name","OB_CASE_DETERMINATION")
+  
+  snp_outbreak <- cbind(all,snp_outbreak0)
+  
+    snp_outbreak <- snp_outbreak %>% 
+      filter(OB_CASE_DETERMINATION == "True Outbreak Case") %>%
+      filter(Outbreak_Name == as.name(outbreakDot)) %>%
+      tibble::column_to_rownames( "Unique_ID") %>% 
+      select(-"Outbreak_Name",-"OB_CASE_DETERMINATION") #%>%
+      #select_if(colSums(.) != 0)
+    
+    distmat <- as.dist(snp_outbreak)
+
+    pango <- left_join(col_list, tree_labels) %>% 
+      select(Unique_ID,Lineage) %>% 
+      column_to_rownames(var = "Unique_ID")
+    
+    pc <- as.data.frame(lineage_col_pheat) %>% rownames_to_column()
+    colnames(pc)[1] <- "Lineage"
+    colnames(pc)[2] <- "color"
+    
+    pango_col <- left_join(pango, pc) %>% 
+      select(Lineage, color) %>% distinct(Lineage)
+    
+    p <- pango_col$Lineage
+    
+    pangclo <-  lineage_col_pheat$Lineage[p]
+
+    pangclo <- list(Lineage = pangclo)
+ 
+    
+       
+    pango_cmy <- left_join(col_list, tree_labels) %>% 
+      select(Unique_ID,Lineage) %>% 
+      column_to_rownames(var = "Unique_ID") 
+    
+    pc_cmy <- as.data.frame(lineage_col_pheat_cmy) %>% rownames_to_column()
+    colnames(pc_cmy)[1] <- "Lineage"
+    colnames(pc_cmy)[2] <- "color"
+    
+    pango_col_cmy <- left_join(pango_cmy, pc_cmy) %>% 
+      select(Lineage, color) %>% distinct(Lineage)
+    
+    p_cmy <- pango_col_cmy$Lineage
+    
+    pangclo_cmy <-  lineage_col_pheat_cmy$Lineage[p]
+
+    pangclo_cmy <- list(Lineage = pangclo_cmy)
+
+    
+
+    
+  
+    Household <- left_join(col_list, tree_labels) %>% 
+      select(Unique_ID,Household) %>% 
+      column_to_rownames(var = "Unique_ID")
+
+  mat_snp_outbreak <- as.matrix(snp_outbreak)
+  
+  callback = function(hc, mat){
+    sv = svd(t(mat))$v[,1]
+    dend = reorder(as.dendrogram(hc), wts = sv)
+    as.hclust(dend)
+}
+
+h <- hclust(distmat, method = "complete", members = NULL)
+c <- callback(h,distmat)
+plot(c)
+dend <- as.dendrogram(c)
+phy <- as.phylo(dend)
+phy <- as.phylo(tree1)
+
+phy <- drop.tip(phy, "Wuhan-Hu-1")
+plot(phy)
+
+ 
+metadata <-
+  tree_labels |>
+  mutate(
+    across(c(Household, Lineage, Cluster), factor),
+    earliest_pcr_onset_dt = as.Date(earliest_pcr_onset_dt)
+  )
+
+phydata <-  phylepic(phy, metadata, Unique_ID, earliest_pcr_onset_dt) 
+
+boot <- phydata$tree$node.label
+uniq <- phydata$tree$tip.label
+nodes <- c(boot,uniq)
+
+pango_col_cmy <- scale_color_manual(values = c(
+  AY.44 = "#00ccb3",
+  AY.98.1 = "black",
+  AY.122 = "#6600ff",
+  AY.43 = "#0080cc",
+  AY.25 = "#d94d4d",
+  AY.25.1 = "#e68080",
+  AY.25.1.1 = "#f2b3b3",
+  AY.3 = "#33ff33",
+  AY.3.1 = "#73ff73",
+  AY.103 = "#d9f24d",
+  AY.4 = "#f280a6",
+  AY.19.1 = "#bff2bf",
+  AY.117 = "#cc0000",
+  AY.39 = "#80cc4d",
+  AY.39.1 = "#a6d980",
+  AY.100 = "#ff8000",
+  AY.113 = "#808000",
+  B.1.617.2 = "#004db3",
+  AY.2 = "#56B4E9",
+  AY.47 = "#d600ff",
+  BA.1 = "#40004d",
+  BA.1.15 = "#804d80",
+  BA.1.1 = "#998099",
+  BA.1.18 = "#ccb3cc",
+  B.1.1.7 = "#d9cc4d",
+  AY.5 = "grey10",
+  AY.99.2 = "grey80",
+  AY.20 = "grey70",
+  AY.107 = "grey50",
+  AY.75 = "grey40",
+  AY.35 = "grey30",
+  AY.14 = "grey20",
+  AY.119 = "grey90",
+  AY.119.2 = "grey95",
+  AY.105="grey95"
+
+  ))
+
+
+options(phylepic.week_start = "Monday")
+
+date_scale <- scale_x_week(
+  name = "Date of diagnostic test or symptom onset",
+  limits = as.Date(c("2021-09-20", "2021-11-29")),
+  date_labels = "%d %b",
+  week_breaks = 4L,
+  week_minor_breaks = 2L
+)
+
+#plot(phydata, scale.date = date_scale, height.tree = 6)
+
+cluster_scale <- scale_colour_brewer(
+  # the name affects the legend title
+  name = "Cluster",
+  # these 3 parameters affect the colour choice
+  type = "qual",
+  palette = 3,
+  direction = -2,
+  # don't drop unused levels; we want consistency between panels
+  drop = FALSE,
+  # suppress the explicit NA entry in the legend; not all tips are in a cluster
+  na.translate = FALSE,
+  # we'll use this scale later for both fill and colour aesthetics
+  aesthetics = c("fill", "colour")
+)
+
+
+ann_colors_cmy <- list(
+    Lineage = pangclo_cmy$Lineage,
+    Cluster = c(A="#0066a8", B="#56c1c1",C="#a5fff8",D="#a9d400",E="#f2ff4d",F="#ffae8a",G ="#7bff33",H="#d7ffcc"),
+    Household = c("HH 54"= "grey35","HH 55"= "grey90","HH 28"= "grey35","HH 29"= "grey90" ,"HH 35"= "grey40", "HH 32"="grey95", "HH 33" = "grey80", "HH 34"= "grey60", "none"="white",
+                  "HH 10" = "grey0",
+                  "HH 11" = "grey20", 
+                  "HH 36" = "grey35",
+                  "HH 13" = "grey50",
+                  "HH 38" = "grey65"
+                  ),
+    Role_Category = c("Student"="lightblue", "Staff"="brown4")
+    )
+
+
+
+clustcol_cmy= c(A="#0066a8", B="#56c1c1",C="#a5fff8",D="#a9d400",E="#f2ff4d",F="#ffae8a",G ="#7bff33",H="#d7ffcc")
+cluster_scale_cmy <- scale_fill_manual(name = "Cluster", values = c(A="#0066a8", B="#56c1c1",C="#a5fff8",D="#a9d400",E="#f2ff4d",F="#ffae8a",G ="#7bff33",H="#d7ffcc"))
+
+
+tr_layout <- create_tree_layout(phydata) %>% mutate(node.label.orig = ifelse((node.label.orig < 70)&(node.label.orig != 100), NA, node.label.orig))
+
+
+phyplot_cmy <- plot(
+  phydata,
+  plot.tree = function(x) {
+    plot_tree(x) + 
+      ggraph::geom_node_point(aes(filter = leaf, colour = Lineage, shape=Role), size = 3, show.legend = TRUE) +
+
+      scale_shape_manual(values = c("Staff" = 17, "Student" = 19)) +
+      pango_col_cmy +
+        ggraph::geom_node_text(aes(label=tr_layout$node.label.orig), 
+                         size = 3,
+                         nudge_x = -0.000015,
+                         nudge_y = 0.4,)
+
+  },
+  plot.bars = plot_bars(
+    Household = scale_color_manual(values = ann_colors_cmy$Household),
+  ) ,
+  plot.epicurve = plot_epicurve(fill = Cluster),
+  plot.calendar = plot_calendar(
+    fill = Cluster,
+    labels = "%d",
+  ),
+  scale.date = date_scale,
+  scale.fill = cluster_scale_cmy, # new: pass the scale to both panels
+  width.tree = 20,
+  width.date = 12,
+  width.legend = 4,
+  height.tree = 6
+)
+
+pdf(paste0(outpath,"/outbreak",outbreakDot,"/",outbreakDot,"_phylepic_plot_cmyk.pdf"), width = 10,height = 10, bg = "white", colormodel = "cmyk")
+  phyplot_cmy
+dev.off()
+
+phyplot
+phyplot_cmy
+```
+
+# Make heatmap
+
+```{r}
+
+outbreakDot_list1 <- "CoV.0682"
+
+for (outbreakDot in outbreakDot_list1) {
+    
+    dir.create(paste0(outpath,"/outbreak",outbreakDot,"/"), showWarnings = FALSE)  
+    
+  col_list <- snpMMmeta_merge %>% 
+      filter(Outbreak_Name == as.name(outbreakDot)) %>%
+      filter(OB_CASE_DETERMINATION == "True Outbreak Case") %>% 
+      select(Unique_ID)
+  c <- col_list$Unique_ID
+  c <- as.character(c)
+
+    
+  
+  snp_outbreak0 <- snpMMmeta_merge %>% 
+      select(all_of(c)) %>%
+      mutate(across(everything(), as.numeric))
+  
+  all <- snpMMmeta_merge %>% 
+      select("Unique_ID","Outbreak_Name","OB_CASE_DETERMINATION")
+  
+  snp_outbreak <- cbind(all,snp_outbreak0)
+  
+    snp_outbreak <- snp_outbreak %>% 
+      filter(OB_CASE_DETERMINATION == "True Outbreak Case") %>%
+      filter(Outbreak_Name == as.name(outbreakDot)) %>%
+      tibble::column_to_rownames( "Unique_ID") %>% 
+      select(-"Outbreak_Name",-"OB_CASE_DETERMINATION") #%>%
+      #select_if(colSums(.) != 0)
+    
+    distmat <- as.dist(snp_outbreak)
+
+    pango <-  left_join(col_list, tree_labels) %>% 
+      select(Unique_ID,Lineage) %>% 
+      column_to_rownames(var = "Unique_ID")
+
+  mat_snp_outbreak <- as.matrix(snp_outbreak)
+  
+  callback = function(hc, mat){
+    sv =  svd(t(mat))$v[,1]
+    dend = reorder(as.dendrogram(hc), wts = sv)
+    as.hclust(dend)
+  }
+ 
+row.dd <- as.dendrogram(h)
+
+neworder = c("SC1-28", "SC1-27", "SC1-22", "SC1-24", "SC1-20", "SC1-23", "SC1-19", "SC1-14", "SC1-18", "SC1-42", "SC1-4",  "SC1-3",  "SC1-5",  "SC1-45","SC1-9",  "SC1-8",  "SC1-12", "SC1-10", "SC1-6",  "SC1-11",  "SC1-17", "SC1-25", "SC1-13", "SC1-2","SC1-41","SC1-29", "SC1-15", "SC1-7",  "SC1-32", "SC1-38", "SC1-37", "SC1-40", "SC1-36", "SC1-34", "SC1-30" )
+
+h.reordered  = reorder(row.dd, wts = order(match(neworder, rownames(snp_outbreak))))
+plot(h.reordered)
+hr <- as.hclust(h.reordered)
+
+
+color_cmyk = c( "#3300ff","#5c33ff","#7a59ff","#8f73ff","#a38cff","#ad99ff","#c2b3ff","#e0d9ff", "white","#edffe6","#ccf7b3","#a6f280","#80f24d","#4de600","#33cc33","#338033"  )
+
+
+
+  breaks = c(-1,0,1,2,3,4,5,6,7,8,9,10,20,30)
+
+
+
+
+
+  my_data1 <- test1 %>% filter(Lineage != "WuHan-1") %>% column_to_rownames("Unique_ID")
+  anno_data1 <- as.data.frame(my_data1) 
+  
+     mydata2 <- left_join(col_list, tree_labels) %>% 
+      select(Unique_ID,Household) %>% 
+      column_to_rownames(var = "Unique_ID")
+     
+      anno_data2 <- as.data.frame(mydata2) 
+
+
+
+  pheatmap(distmat, annotation_row=anno_data1, annotation_col=anno_data2,
+           annotation_colors=ann_colors ,color=color, clustering_callback = callback,
+           breaks = breaks,legend_breaks = breaks,labels_col = c,
+           labels_row = c, display_numbers = TRUE, number_format = "%.f", 
+           number_color = "grey45",
+           filename=paste0(outpath,"/outbreak",outbreakDot,"/",outbreakDot,"_pheatmap_plot.png"), cellwidth=15, cellheight=15)
+  
+
+p <- pheatmap(distmat, annotation_row=anno_data1, annotation_col=anno_data2,
+           annotation_colors=ann_colors ,color=color, clustering_callback = callback,
+           breaks = breaks,legend_breaks = breaks,labels_col = c,
+           labels_row = c, display_numbers = TRUE, number_format = "%.f", 
+           number_color = "grey45")
+   
+  p
+ outbreakDot <- sym(outbreakDot)
+
+}
+
+```
+
+```{r}
+
+pdf(paste0(outpath,"/outbreak",outbreakDot,"/",outbreakDot,"_pheatmap_plot_cmyk_dark.pdf"), width = 10,height = 10, bg = "white", colormodel = "cmyk")
+  pheatmap(distmat, annotation_row=anno_data1, annotation_col=anno_data2,
+           annotation_colors=ann_colors_cmy ,color=color_cmyk,cluster_rows = rev(hr), cluster_cols = rev(hr),
+           breaks = breaks,legend_breaks = breaks,labels_col = c,fontsize_number =8,
+           labels_row = c, display_numbers = TRUE, number_format = "%.f",  
+           number_color = "grey0")
+dev.off()
+```
 
