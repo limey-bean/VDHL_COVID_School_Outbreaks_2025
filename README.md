@@ -7,3 +7,7 @@
 3. [Rscripts for Building Phylepics SNP distance headmaps](https://github.com/limey-bean/VDHL_COVID_School_Outbreaks_2025/tree/main/Rscripts)
     
 
+## These analyses were using the Vermont Advanced Computing Center (VACC) at the University of Vermont for providing computational resources that have contributed to the research results reported within this paper. 
+URL: http://www.uvm.edu/vacc
+(RRID:SCR_017762)
+The scheduler is SLURM
