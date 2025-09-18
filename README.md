@@ -4,7 +4,6 @@
 
 1. [Running the secret workflow Cecret](https://github.com/limey-bean/VDHL_COVID_School_Outbreaks_2025/tree/main/Cecret_and_sequence_IDs)
 2. [Building phylogenetic trees and determining SNP differences](https://github.com/limey-bean/VDHL_COVID_School_Outbreaks_2025/tree/main/Build_phylogenies_and_SNP_dist_matrices)
-3. Building SNP distance headmaps
-4. Building Phylepics
+3. [Rscripts for Building Phylepics SNP distance headmaps](https://github.com/limey-bean/VDHL_COVID_School_Outbreaks_2025/tree/main/R_scripts)
     
 
