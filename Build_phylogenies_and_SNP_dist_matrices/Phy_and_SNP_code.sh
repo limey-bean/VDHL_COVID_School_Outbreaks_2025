@@ -1,7 +1,3 @@
-# These analyses were using the Vermont Advanced Computing Center (VACC) at the University of Vermont for providing computational resources that have contributed to the research results reported within this paper. 
-URL: http://www.uvm.edu/vacc
-The scheduler is SLURM
-
 # The first step is to build a multiple seqeunce alignment (MSA) from a multifasta file that includes all samples of interest, and the WuHan-1 (NC_045512.2) as an outgroup.
 
 # I used a contanerized version of MAFFT,  to accomplish this
